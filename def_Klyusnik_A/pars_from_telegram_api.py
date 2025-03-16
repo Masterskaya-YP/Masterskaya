@@ -1,7 +1,6 @@
 from telethon import TelegramClient
 import pandas as pd
 
-# Замените эти значения на свои
 api_id = 'YOUR_API_ID'
 api_hash = 'YOUR_API_HASH'
 phone_number = 'YOUR_PHONE_NUMBER'
@@ -36,7 +35,7 @@ async def main():
 
     # Сохранение сообщений в DataFrame
     df = pd.DataFrame(messages)
-    df.to_csv('messages.csv', index=False)  # Сохранение в CSV файл
+    df.to_csv('Masterskaya\def_Klyusnik_A\download\messages.csv', index=False)  # Сохранение в CSV файл
 
 with client:
     client.loop.run_until_complete(main())
