@@ -55,7 +55,7 @@
 
 Вы можете ознакомиться с кодом в следующем ноутбуке:
 
-[Парсинг JSON файлов и обработка данных](../notebook_json_pars.ipynb)
+[Парсинг JSON файлов и обработка данных](https://github.com/Masterskaya-YP/Masterskaya/blob/def_Klyushnik_A/notebook_json_pars.ipynb)
 
 ## Описание
 
