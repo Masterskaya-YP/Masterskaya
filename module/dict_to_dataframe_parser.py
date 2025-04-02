@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Optional
 import json
 import pandas as pd
 
@@ -17,13 +18,17 @@ class DictToDataFrameParser:
                                          используя заданные столбцы.(статистический)
     save_to_csv(file_path): Сохраняет DataFrame в CSV-файл по заданному пути.
     '''
-    def __init__(self, path: Path, columns: dict[str, str]):
+    def __init__(self, path: Path, columns: Optional[dict[str, str]] = None):
         '''
         :param path: Путь к JSON-файлу для загрузки данных.
         :param columns: Словарь сопоставления ключей из 'messages' с названиями столбцов для первичного DataFrame.
         '''
         self.path = path
-        self.columns = columns
+        if columns is None:
+            self.columns = {'date': 'date', 'id':'message_id','type':'type', 'from_id': 'from_id', 
+                'actor_id':'actor_id' , 'reply_to_message_id': 'reply_to_message_id','from': 'user_name', 'actor':'user_name_actor'}
+        else: 
+            self.columns = columns
         self.result_dict = DictToDataFrameParser.load_json(path)  # Здесь вызываем метод через имя класса
         self.df = DictToDataFrameParser.build_df_chat(self.result_dict, self.columns)
         
