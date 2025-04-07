@@ -11,6 +11,7 @@ class DictToDataFrameParser:
                     а значения — названиям столбцов в первичном DataFrame.
     result_dict (dict): Десериализованный словарь, полученный из JSON-файла.
     df (DataFrame): DataFrame, созданный на основе данных из result_dict и columns
+    name: Название чата
 
     Методы:
     load_json(path): Загружает и десериализует JSON-файл.(статистический)
@@ -31,6 +32,8 @@ class DictToDataFrameParser:
             self.columns = columns
         self.result_dict = DictToDataFrameParser.load_json(path)  # Здесь вызываем метод через имя класса
         self.df = DictToDataFrameParser.build_df_chat(self.result_dict, self.columns)
+
+        self.name = self.result_dict.get('name')
         
     @staticmethod
     def load_json(path: Path) -> dict:
@@ -46,7 +49,8 @@ class DictToDataFrameParser:
         },
         'text': [ ' '.join( i.get('text') for  i in dict_to_df['messages'][x]['text_entities'])
             for x in range( len(dict_to_df['messages']))
-        ]}    
+        ]}
+           
         df = pd.DataFrame(df_dict)
         df['date'] =  pd.to_datetime(df['date'])
         if 'user_name_actor' in df.columns:
@@ -76,7 +80,8 @@ class DictToDataFrameParser:
             column =list(df.columns)
             df=df[column[:3]+column[-2:]+column[3:-2]]
         
-         # df = df.fillna(0)
+            # df = df.fillna(0)
+            df[df.select_dtypes(include='number').columns]= df.select_dtypes(include='number').fillna(-1).astype('int64')
         return df
 
     def save_to_csv(self, name_file: str, path: Path = Path.cwd()) -> None:
