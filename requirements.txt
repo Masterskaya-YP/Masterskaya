@@ -13,3 +13,4 @@ kiwisolver
 pillow
 pyparsing
 six
+pyvis

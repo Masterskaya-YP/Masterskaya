@@ -1,5 +1,4 @@
 # chat_analysis.py
-# chat_analysis.py
 import json
 import logging
 import os
@@ -24,7 +23,8 @@ from collections import Counter
 from pyvis.network import Network
 from PyPDF2 import PdfWriter
 from matplotlib.backends.backend_pdf import PdfPages
-# import shap
+import matplotlib.patches as mpatches
+from matplotlib import cm
 
 # Настройки
 logging.basicConfig(level=logging.INFO)
@@ -115,6 +115,7 @@ def analyze_time_patterns(df, chat_name, pdf_pages):
 def analyze_text_content(df, chat_name, pdf_pages):
     """Анализ текстового содержания"""
     if 'text_clean' not in df.columns:
+        logger.warning(f"В чате {chat_name} нет данных для анализа текста")
         return None
     
     def clean_text(text):
@@ -131,37 +132,50 @@ def analyze_text_content(df, chat_name, pdf_pages):
     custom_stopwords = {'который', 'которые', 'когда', 'потому', 'очень', 'может', 'будет', 'этого', 'этот'}
     
     all_text = ' '.join(df['cleaned_text'].dropna())
-    wordcloud = WordCloud(width=800, height=400, background_color='white',
-                         stopwords=custom_stopwords, collocations=False).generate(all_text)
     
-    fig = plt.figure(figsize=(12, 6))
-    plt.imshow(wordcloud, interpolation='bilinear')
-    plt.title(f'Облако слов в {chat_name}')
-    plt.axis('off')
-    pdf_pages.savefig(fig)
-    plt.close()
+    # Проверка на пустой текст после очистки
+    if not all_text.strip():
+        logger.warning(f"В чате {chat_name} нет текста для построения облака слов после очистки")
+        return None
+    
+    try:
+        wordcloud = WordCloud(width=800, height=400, background_color='white',
+                            stopwords=custom_stopwords, collocations=False).generate(all_text)
+        
+        fig = plt.figure(figsize=(12, 6))
+        plt.imshow(wordcloud, interpolation='bilinear')
+        plt.title(f'Облако слов в {chat_name}')
+        plt.axis('off')
+        pdf_pages.savefig(fig)
+        plt.close()
+    except ValueError as e:
+        logger.warning(f"Не удалось создать облако слов для {chat_name}: {str(e)}")
+        return None
     
     words = [word for text in df['cleaned_text'].dropna() 
              for word in text.split() if word not in custom_stopwords]
     
+    if not words:
+        logger.warning(f"В чате {chat_name} нет слов для анализа после фильтрации")
+        return None
+    
     word_counts = Counter(words).most_common(20)
     
-    if word_counts:
-        fig = plt.figure(figsize=(12, 6))
-        pd.DataFrame(word_counts, columns=['word', 'count']).plot(
-            x='word', y='count', kind='bar', color='teal')
-        plt.title(f'Топ-20 значимых слов в {chat_name}')
-        plt.xlabel('Слово')
-        plt.ylabel('Частота')
-        plt.xticks(rotation=45)
-        plt.tight_layout()
-        pdf_pages.savefig(fig)
-        plt.close()
+    fig = plt.figure(figsize=(12, 6))
+    pd.DataFrame(word_counts, columns=['word', 'count']).plot(
+        x='word', y='count', kind='bar', color='teal')
+    plt.title(f'Топ-20 значимых слов в {chat_name}')
+    plt.xlabel('Слово')
+    plt.ylabel('Частота')
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    pdf_pages.savefig(fig)
+    plt.close()
     
     return word_counts
 
 def analyze_network(df, chat_name, pdf_pages):
-    """Сетевой анализ"""
+    """Сетевой анализ с визуализацией кластеров"""
     if 'reply_to_message_id' not in df.columns or 'from_id' not in df.columns:
         return None
     
@@ -182,7 +196,7 @@ def analyze_network(df, chat_name, pdf_pages):
     if len(G.nodes()) == 0:
         return None
 
-    # Статичная визуализация графа
+    # 1. Основной граф взаимодействий
     fig = plt.figure(figsize=(18, 14))
     plt.title(f'Структура взаимодействий в чате {chat_name}', pad=20, fontsize=14)
     
@@ -203,6 +217,103 @@ def analyze_network(df, chat_name, pdf_pages):
     plt.axis('off')
     pdf_pages.savefig(fig)
     plt.close()
+    
+    # 2. Визуализация кластеров (только если есть достаточно данных)
+    if len(G) >= 3:
+        try:
+            # Выявляем топ-3 кластера
+            communities = nx.algorithms.community.greedy_modularity_communities(G.to_undirected())
+            top_clusters = sorted(communities, key=len, reverse=True)[:3]
+            
+            # Цветовая палитра для кластеров
+            colors = cm.get_cmap('tab20', len(top_clusters))
+            
+            fig = plt.figure(figsize=(18, 12))
+            pos = nx.spring_layout(G, k=0.8, iterations=200, seed=42)
+            
+            # Рисуем все узлы серым (фон)
+            nx.draw_networkx_nodes(G, pos, node_size=50, node_color='#dddddd', alpha=0.5)
+            nx.draw_networkx_edges(G, pos, edge_color='#cccccc', alpha=0.3, width=0.5)
+            
+            # Выделяем кластеры
+            legend_handles = []
+            for i, cluster in enumerate(top_clusters):
+                cluster_color = colors(i)
+                nx.draw_networkx_nodes(
+                    G, pos, 
+                    nodelist=cluster,
+                    node_size=[np.log(G.nodes[n]['size'])*100 for n in cluster],
+                    node_color=[cluster_color for _ in cluster],
+                    edgecolors='white',
+                    linewidths=0.5,
+                    label=f'Кластер {i+1}'
+                )
+                # Подписи для топ-3 узлов в кластере
+                pagerank = nx.pagerank(G)
+                top_in_cluster = sorted(cluster, key=lambda x: pagerank[x], reverse=True)[:3]
+                for node in top_in_cluster:
+                    plt.text(
+                        pos[node][0], pos[node][1]+0.03,
+                        node, 
+                        fontsize=9, ha='center', va='bottom',
+                        bbox=dict(facecolor='white', alpha=0.7, edgecolor='none', pad=1)
+                    )
+                legend_handles.append(mpatches.Patch(color=cluster_color, 
+                                                    label=f'Кластер {i+1} ({len(cluster)} участников)'))
+            
+            plt.title(
+                f'Топ-3 кластера в чате "{chat_name}"\n'
+                'Размер узла = активность, Цвет = принадлежность к кластеру',
+                fontsize=16, pad=20
+            )
+            plt.legend(handles=legend_handles, loc='upper right')
+            plt.axis('off')
+            pdf_pages.savefig(fig)
+            plt.close()
+            
+            # 3. Детальная визуализация каждого кластера
+            for i, cluster in enumerate(top_clusters, 1):
+                cluster_graph = G.subgraph(cluster)
+                fig = plt.figure(figsize=(12, 12))
+                
+                # Круговая диаграмма для кластера
+                pos_circular = nx.circular_layout(cluster_graph)
+                
+                nx.draw_networkx_nodes(
+                    cluster_graph, pos_circular,
+                    node_size=[np.log(cluster_graph.nodes[n]['size'])*200 for n in cluster_graph.nodes()],
+                    node_color=colors(i-1),
+                    alpha=0.9
+                )
+                
+                nx.draw_networkx_edges(
+                    cluster_graph, pos_circular,
+                    width=[0.5 + cluster_graph[u][v]['weight']*0.5 for u,v in cluster_graph.edges()],
+                    edge_color='#666666',
+                    alpha=0.6
+                )
+                
+                # Подписи без наложений
+                for node in cluster_graph.nodes():
+                    plt.text(
+                        pos_circular[node][0], pos_circular[node][1],
+                        node, 
+                        fontsize=8, ha='center', va='center',
+                        bbox=dict(facecolor='white', alpha=0.7, edgecolor='none', pad=1)
+                    )
+                
+                plt.title(
+                    f'Кластер #{i}\n'
+                    f'Участников: {len(cluster)}\n'
+                    f'Связей: {cluster_graph.number_of_edges()}',
+                    fontsize=14
+                )
+                plt.axis('off')
+                pdf_pages.savefig(fig)
+                plt.close()
+                
+        except Exception as e:
+            logger.error(f"Ошибка при визуализации кластеров: {e}")
     
     # Интерактивная визуализация (сохраняется как HTML)
     net = Network(height="800px", width="100%", bgcolor="#ffffff", font_color="#333333", directed=True)
@@ -263,6 +374,74 @@ def additional_analysis(df, chat_name, pdf_pages):
         pdf_pages.savefig(fig)
         plt.close()
 
+def compare_chats(df_list, chat_names, pdf_pages):
+    """Сравнительный анализ чатов"""
+    comparison = []
+    
+    for df, name in zip(df_list, chat_names):
+        user_activity = df['from'].value_counts()
+        time_patterns = analyze_time_patterns(df, name, pdf_pages)
+        
+        row = {
+            'chat': name,
+            'total_messages': len(df),
+            'active_users': len(user_activity),
+            'top_user': user_activity.index[0] if not user_activity.empty else None,
+            'top_user_msgs': user_activity.iloc[0] if not user_activity.empty else 0,
+            'peak_hour': time_patterns['hourly_activity'].idxmax() if not time_patterns['hourly_activity'].empty else None,
+            'peak_day': time_patterns['daily_activity'].idxmax() if not time_patterns['daily_activity'].empty else None
+        }
+        
+        if 'text_clean' in df.columns:
+            word_counts = analyze_text_content(df, name, pdf_pages)
+            if word_counts:
+                row['top_word'] = word_counts[0][0]
+                row['top_word_count'] = word_counts[0][1]
+            else:
+                row['top_word'] = None
+                row['top_word_count'] = 0
+        
+        comparison.append(row)
+    
+    comparison_df = pd.DataFrame(comparison)
+    
+    # Визуализация сравнения (только если есть данные)
+    try:
+        fig, axes = plt.subplots(2, 2, figsize=(16, 12))
+        
+        # Общее количество сообщений
+        comparison_df.plot(x='chat', y='total_messages', kind='bar', ax=axes[0, 0], legend=False)
+        axes[0, 0].set_title('Общее количество сообщений')
+        axes[0, 0].set_ylabel('Количество')
+        
+        # Количество активных пользователей
+        comparison_df.plot(x='chat', y='active_users', kind='bar', ax=axes[0, 1], legend=False, color='orange')
+        axes[0, 1].set_title('Количество активных пользователей')
+        axes[0, 1].set_ylabel('Количество')
+        
+        # Пиковый час активности
+        comparison_df.plot(x='chat', y='peak_hour', kind='bar', ax=axes[1, 0], legend=False, color='green')
+        axes[1, 0].set_title('Пиковый час активности')
+        axes[1, 0].set_ylabel('Час дня')
+        
+        # Топовые слова (если есть данные)
+        if 'top_word_count' in comparison_df.columns and comparison_df['top_word_count'].sum() > 0:
+            comparison_df.plot(x='chat', y='top_word_count', kind='bar', ax=axes[1, 1], legend=False, color='red')
+            axes[1, 1].set_title('Частота топового слова')
+            axes[1, 1].set_ylabel('Количество')
+        else:
+            axes[1, 1].axis('off')
+            axes[1, 1].text(0.5, 0.5, 'Нет данных о словах', ha='center', va='center')
+        
+        plt.suptitle('Сравнительный анализ чатов', fontsize=16)
+        plt.tight_layout()
+        pdf_pages.savefig(fig)
+        plt.close()
+    except Exception as e:
+        logger.error(f"Ошибка при создании сравнительных графиков: {e}")
+    
+    return comparison_df
+
 def main():
     # Загрузка данных
     try:
@@ -301,6 +480,33 @@ def main():
             except Exception as e:
                 logger.error(f"Ошибка при анализе чата {chat_name}: {e}")
                 continue
+        
+        # Сравнительный анализ всех чатов
+        fig = plt.figure(figsize=(11, 8.5))
+        plt.text(0.5, 0.5, "Сравнительный анализ чатов", 
+                ha='center', va='center', fontsize=20)
+        plt.axis('off')
+        pdf_pages.savefig(fig)
+        plt.close()
+        
+        comparison_df = compare_chats([df_1, df_2, df_3], 
+                                    ["DATA PRACTICUM", "MANAGEMENT ALUMNI", "MARKETING CHAT"],
+                                    pdf_pages)
+        
+        # Сохранение сравнения в таблицу
+        fig, ax = plt.subplots(figsize=(12, 4))
+        ax.axis('tight')
+        ax.axis('off')
+        table = ax.table(cellText=comparison_df.values,
+                        colLabels=comparison_df.columns,
+                        cellLoc='center',
+                        loc='center')
+        table.auto_set_font_size(False)
+        table.set_fontsize(10)
+        table.scale(1.2, 1.2)
+        plt.title('Сравнительная таблица чатов', y=1.08)
+        pdf_pages.savefig(fig, bbox_inches='tight')
+        plt.close()
 
 if __name__ == "__main__":
     main()
