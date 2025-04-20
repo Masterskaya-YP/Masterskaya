@@ -132,7 +132,7 @@
 2. Поместите CSV-файлы чатов в папку `./datasets/`
 3. Запустите скрипт: `python chat_analysis.py`
 
-# Анализ чатов выпускных сообществ Яндекс Практикума([файл.py](https://github.com/Masterskaya-YP/Masterskaya/blob/def_Klyushnik_A/EDA.ipynb))
+# Анализ чатов выпускных сообществ Яндекс Практикума([EDA.py](https://github.com/Masterskaya-YP/Masterskaya/blob/def_Klyushnik_A/chat_analysis.py))
 
 **Ключевые задачи:**
 - Анализ активности пользователей
