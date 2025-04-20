@@ -2,6 +2,14 @@ matplotlib
 numpy
 pandas
 seaborn
-shap
 statsmodels
 telethon
+networkx
+wordcloud
+PyPDF2
+pytz
+cycler
+kiwisolver
+pillow
+pyparsing
+six

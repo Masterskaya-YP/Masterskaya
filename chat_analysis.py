@@ -1,21 +1,30 @@
-# Парсинг json файла
+# chat_analysis.py
+# chat_analysis.py
 import json
-import pandas as pd
-import numpy as np
-import os
 import logging
+import os
 import warnings
 import re
+
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
-from matplotlib import cm
+import numpy as np
+import pandas as pd
 import seaborn as sns
+from scipy import stats
+from scipy.optimize import minimize
+from scipy.stats import mstats
+from statsmodels.tsa.seasonal import seasonal_decompose
+from statsmodels.tsa.statespace.sarimax import SARIMAX
 import networkx as nx
-from collections import Counter
+
+import ast
 from wordcloud import WordCloud
+from collections import Counter
+from pyvis.network import Network
 from PyPDF2 import PdfWriter
 from matplotlib.backends.backend_pdf import PdfPages
+# import shap
 
 # Настройки
 logging.basicConfig(level=logging.INFO)
@@ -70,7 +79,6 @@ def analyze_active_users(df, chat_name, pdf_pages):
 
 def analyze_time_patterns(df, chat_name, pdf_pages):
     """Анализ временных паттернов"""
-    # Активность по часам
     hourly_activity = df['hour'].value_counts().sort_index()
     
     fig = plt.figure(figsize=(12, 6))
@@ -82,7 +90,6 @@ def analyze_time_patterns(df, chat_name, pdf_pages):
     pdf_pages.savefig(fig)
     plt.close()
     
-    # Активность по дням недели
     days_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
     daily_activity = df['day_of_week'].value_counts().reindex(days_order)
     
@@ -95,7 +102,6 @@ def analyze_time_patterns(df, chat_name, pdf_pages):
     pdf_pages.savefig(fig)
     plt.close()
     
-    # Heatmap активности
     heatmap_data = df.groupby(['day_of_week', 'hour']).size().unstack().reindex(days_order)
     fig = plt.figure(figsize=(14, 8))
     sns.heatmap(heatmap_data, cmap="YlGnBu", annot=True, fmt="g")
@@ -124,7 +130,6 @@ def analyze_text_content(df, chat_name, pdf_pages):
     df['cleaned_text'] = df['text_clean'].apply(clean_text)
     custom_stopwords = {'который', 'которые', 'когда', 'потому', 'очень', 'может', 'будет', 'этого', 'этот'}
     
-    # Облако слов
     all_text = ' '.join(df['cleaned_text'].dropna())
     wordcloud = WordCloud(width=800, height=400, background_color='white',
                          stopwords=custom_stopwords, collocations=False).generate(all_text)
@@ -136,7 +141,6 @@ def analyze_text_content(df, chat_name, pdf_pages):
     pdf_pages.savefig(fig)
     plt.close()
     
-    # Топ-20 слов
     words = [word for text in df['cleaned_text'].dropna() 
              for word in text.split() if word not in custom_stopwords]
     
@@ -178,7 +182,7 @@ def analyze_network(df, chat_name, pdf_pages):
     if len(G.nodes()) == 0:
         return None
 
-    # Визуализация графа
+    # Статичная визуализация графа
     fig = plt.figure(figsize=(18, 14))
     plt.title(f'Структура взаимодействий в чате {chat_name}', pad=20, fontsize=14)
     
@@ -200,22 +204,44 @@ def analyze_network(df, chat_name, pdf_pages):
     pdf_pages.savefig(fig)
     plt.close()
     
+    # Интерактивная визуализация (сохраняется как HTML)
+    net = Network(height="800px", width="100%", bgcolor="#ffffff", font_color="#333333", directed=True)
+    pagerank = nx.pagerank(G)
+    betweenness = nx.betweenness_centrality(G)
+    
+    for node in G.nodes():
+        net.add_node(
+            node, 
+            size=np.log(G.nodes[node]['size']) * 5,
+            title=f"{node}\nСообщений: {G.nodes[node]['size']}\nPageRank: {pagerank[node]:.3f}\nBetweenness: {betweenness[node]:.3f}",
+            group=int(pagerank[node] * 100))
+    
+    for edge in G.edges(data=True):
+        net.add_edge(edge[0], edge[1], width=edge[2]['weight']*0.5)
+    
+    net.save_graph(f"interactive_network_{chat_name}.html")
+    
     return G
 
 def additional_analysis(df, chat_name, pdf_pages):
     """Дополнительный анализ"""
+    # Средняя длина сообщения
     if 'text_clean' in df.columns:
         df['msg_length'] = df['text_clean'].str.len()
+        avg_length = df['msg_length'].mean()
+        
         fig = plt.figure(figsize=(12, 6))
         df['msg_length'].hist(bins=50)
-        plt.title(f'Распределение длины сообщений в {chat_name}')
+        plt.title(f'Распределение длины сообщений в {chat_name}\nСредняя длина: {avg_length:.1f} символов')
         plt.xlabel('Длина сообщения (символы)')
         plt.ylabel('Количество')
         pdf_pages.savefig(fig)
         plt.close()
     
+    # Динамика сообщений по времени
     if 'date' in df.columns:
         daily_counts = df.resample('D', on='date').size()
+        
         fig = plt.figure(figsize=(14, 6))
         daily_counts.plot()
         plt.title(f'Динамика сообщений в {chat_name}')
@@ -224,36 +250,57 @@ def additional_analysis(df, chat_name, pdf_pages):
         plt.grid(True)
         pdf_pages.savefig(fig)
         plt.close()
+        
+        # Скользящее среднее
+        rolling_avg = daily_counts.rolling(window=7).mean()
+        
+        fig = plt.figure(figsize=(14, 6))
+        rolling_avg.plot()
+        plt.title(f'Скользящее среднее (7 дней) активности в {chat_name}')
+        plt.xlabel('Дата')
+        plt.ylabel('Количество сообщений')
+        plt.grid(True)
+        pdf_pages.savefig(fig)
+        plt.close()
 
 def main():
     # Загрузка данных
-    df_1 = load_and_process_json('./data/дата/result.json')
-    df_2 = load_and_process_json('./data/менеджмент/result.json')
-    df_3 = load_and_process_json('./data/маркетинг/result.json')
-    
+    try:
+        df_1 = load_and_process_json('./data/дата/result.json')
+        df_2 = load_and_process_json('./data/менеджмент/result.json')
+        df_3 = load_and_process_json('./data/маркетинг/result.json')
+    except Exception as e:
+        logger.error(f"Ошибка загрузки данных: {e}")
+        return
+
     # Предобработка
     df_1 = preprocess_df(df_1)
     df_2 = preprocess_df(df_2)
     df_3 = preprocess_df(df_3)
-    
+
     # Создание PDF отчета
     with PdfPages('chat_analysis_report.pdf') as pdf_pages:
         # Анализ для каждого чата
         for df, chat_name in [(df_1, "DATA PRACTICUM"), (df_2, "MANAGEMENT ALUMNI"), (df_3, "MARKETING CHAT")]:
-            # Добавляем страницу с названием чата
-            fig = plt.figure(figsize=(11, 8.5))
-            plt.text(0.5, 0.5, f"Анализ чата: {chat_name}", 
-                    ha='center', va='center', fontsize=20)
-            plt.axis('off')
-            pdf_pages.savefig(fig)
-            plt.close()
-            
-            # Выполняем анализы
-            analyze_active_users(df, chat_name, pdf_pages)
-            analyze_time_patterns(df, chat_name, pdf_pages)
-            analyze_text_content(df, chat_name, pdf_pages)
-            analyze_network(df, chat_name, pdf_pages)
-            additional_analysis(df, chat_name, pdf_pages)
+            try:
+                # Титульная страница для каждого чата
+                fig = plt.figure(figsize=(11, 8.5))
+                plt.text(0.5, 0.5, f"Анализ чата: {chat_name}", 
+                        ha='center', va='center', fontsize=20)
+                plt.axis('off')
+                pdf_pages.savefig(fig)
+                plt.close()
+                
+                # Выполняем анализы
+                analyze_active_users(df, chat_name, pdf_pages)
+                analyze_time_patterns(df, chat_name, pdf_pages)
+                analyze_text_content(df, chat_name, pdf_pages)
+                analyze_network(df, chat_name, pdf_pages)
+                additional_analysis(df, chat_name, pdf_pages)
+                
+            except Exception as e:
+                logger.error(f"Ошибка при анализе чата {chat_name}: {e}")
+                continue
 
 if __name__ == "__main__":
     main()
