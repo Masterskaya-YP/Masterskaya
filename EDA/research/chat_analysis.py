@@ -26,6 +26,8 @@ from matplotlib.backends.backend_pdf import PdfPages
 import matplotlib.patches as mpatches
 from matplotlib import cm
 
+os.chdir(r'C:\Users\Aleksandr\Downloads\Masterskaya')
+
 # Настройки
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -330,7 +332,7 @@ def analyze_network(df, chat_name, pdf_pages):
     for edge in G.edges(data=True):
         net.add_edge(edge[0], edge[1], width=edge[2]['weight']*0.5)
     
-    net.save_graph(f"interactive_network_{chat_name}.html")
+    net.save_graph(f"./EDA/research/interactive_network_{chat_name}.html")
     
     return G
 
@@ -458,7 +460,7 @@ def main():
     df_3 = preprocess_df(df_3)
 
     # Создание PDF отчета
-    with PdfPages('chat_analysis_report.pdf') as pdf_pages:
+    with PdfPages('./EDA/research/chat_analysis_EDA.pdf') as pdf_pages:
         # Анализ для каждого чата
         for df, chat_name in [(df_1, "DATA PRACTICUM"), (df_2, "MANAGEMENT ALUMNI"), (df_3, "MARKETING CHAT")]:
             try:
