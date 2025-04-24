@@ -183,7 +183,7 @@ python chat_analysis.py
 📈 Результаты работы
 После выполнения скрипта будут созданы:
 
-[chat_analysis_report.pdf](chat_analysis_report.pdf) - PDF-отчет со всеми графиками
+[chat_analysis_EDA.pdf](chat_analysis_EDA.pdf) - PDF-отчет со всеми графиками
 
 [DATA PRACTICUM.html](<interactive_network_DATA PRACTICUM.html>), [MARKETING CHAT](<interactive_network_MARKETING CHAT.html>) - интерактивные графы взаимодействий
 
