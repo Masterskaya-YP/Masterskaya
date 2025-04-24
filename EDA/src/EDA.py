@@ -464,7 +464,7 @@ class ChatAnalyzer:
             df = self.load_and_process_json(json_path)
             df = self.preprocess_df(df)
             
-            pdf_path = self.output_dir / f"report_{chat_name}.pdf"
+            pdf_path = self.output_dir / f"report_EDA_{chat_name}.pdf"
             with PdfPages(pdf_path) as pdf_pages:
                 # Титульная страница
                 fig = plt.figure(figsize=(11, 8.5))
