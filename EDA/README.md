@@ -46,8 +46,8 @@ python EDA/chat_analyzer.py
 ```
 3. Результаты будут сохранены в папку output/:
 
-- [report_EDA_result.pdf](https://github.com/Masterskaya-YP/Masterskaya/blob/EDA/output/network_result.html) - PDF-отчеты для каждого чата
-- [network_result.html](<output\network_result.html>) - Интерактивные HTML-визуализации сетей взаимодействий
+- [report_EDA_result.pdf](https://github.com/Masterskaya-YP/Masterskaya/blob/EDA/output/report_EDA_result.pdf ) - PDF-отчеты для каждого чата
+- [network_result.html](https://github.com/Masterskaya-YP/Masterskaya/blob/EDA/output/network_result.html) - Интерактивные HTML-визуализации сетей взаимодействий
 
 ## 🛒 Возможности анализа
 
