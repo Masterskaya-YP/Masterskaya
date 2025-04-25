@@ -30,8 +30,10 @@ sns.set_style("whitegrid")
 
 class ChatAnalyzer:
     def __init__(self):
-        self.output_dir = Path("./output")
-        self.output_dir.mkdir(exist_ok=True)
+        # Пути к папкам относительно расположения скрипта
+        script_dir = Path(__file__).parent
+        self.input_dir = script_dir.parent / "input"  # Папка input в корне проекта
+        self.output_dir = script_dir.parent / "output"  # Папка output в корне проекта
         
     def load_and_process_json(self, file_path):
         """Загрузка и обработка JSON файла"""
@@ -490,17 +492,24 @@ class ChatAnalyzer:
 
 def main():
     print("=== Анализатор чатов ===")
-    json_path = input("Введите путь к JSON-файлу с данными чата: ").strip('"')
-    
-    if not os.path.exists(json_path):
-        print(f"Ошибка: файл не найден - {json_path}")
-        return
     
     analyzer = ChatAnalyzer()
-    if analyzer.analyze_chat(json_path):
-        print("Анализ успешно завершен! Проверьте папку 'output'") 
-    else:
-        print("Произошла ошибка при анализе. Проверьте логи для деталей.")
+    
+    # Проверяем наличие файлов в папке input
+    json_files = list(analyzer.input_dir.glob("*.json"))
+    
+    if not json_files:
+        print(f"Ошибка: в папке {analyzer.input_dir} не найдены JSON-файлы")
+        return
+    
+    for json_path in json_files:
+        print(f"Обработка файла: {json_path.name}")
+        if analyzer.analyze_chat(json_path):
+            print(f"Анализ завершен для {json_path.name}")
+        else:
+            print(f"Произошла ошибка при анализе {json_path.name}")
+    
+    print("Обработка всех файлов завершена! Проверьте папку 'output'")
 
 if __name__ == "__main__":
     main()
