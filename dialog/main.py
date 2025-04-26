@@ -299,21 +299,23 @@ top_dialog = 20
 clusters['topic'] = "не обработано"  # Сначала заполняем все значения
 clusters.iloc[:top_dialog, clusters.columns.get_loc('topic')] = process_in_batches(clusters.head(top_dialog))
 
-# # Получаем ключевые слова от LLM
+# Получаем ключевые слова от LLM
 clusters['words'] = "не обработано"  # Сначала заполняем все значения
 clusters.iloc[:top_dialog, clusters.columns.get_loc('words')] = process_in_batches_words(clusters.head(top_dialog))
 
-# # Получаем главную мысль от LLM
+# Получаем главную мысль от LLM
 clusters['idea'] = "не обработано"  # Сначала заполняем все значения
 clusters.iloc[:top_dialog, clusters.columns.get_loc('idea')] = process_in_batches_idea(clusters.head(top_dialog))
 
 # Экспорт DataFrame в Excel файл
-df_clast.to_excel('df_clast.xlsx', index=False, engine='openpyxl')
+df_clast.to_excel('output_data/df_clast.xlsx', index=False, engine='openpyxl')
 print("Файл успешно сохранён: df_clast.xlsx")
+
 # перед сохраниением удалим ненужный столбец с текстами
 clusters = clusters.drop(['text'], axis=1)
+
 # Экспорт DataFrame в Excel файл
-clusters.to_excel('clusters.xlsx', index=False, engine='openpyxl')
+clusters.to_excel('output_data/clusters.xlsx', index=False, engine='openpyxl')
 print("Файл успешно сохранён: clusters.xlsx")
 
 end = time.perf_counter()
