@@ -6,6 +6,7 @@ import networkx as nx
 import ollama
 import time
 from tqdm import tqdm
+import argparse
 
 # постоянная для вычесления временного порога близости сообщений
 # суть: 41й перцентиль среди временных распределений в диалоге
@@ -294,7 +295,13 @@ def process_in_batches_idea(df, batch_size=5):
         
     return all_topics
 
-top_dialog = 20
+# Программа для определения количество диалогов, обрабатываемых LLM. 
+# По умолчанию обрабатываем ТОП-20.
+parser = argparse.ArgumentParser(description="Программа для определения количество диалогов, обрабатываемых LLM")
+parser.add_argument("--top", type=int, default=1, help="Количество диалогов")
+args = parser.parse_args()
+top_dialog = args.top
+
 # Получаем темы от LLM
 clusters['topic'] = "не обработано"  # Сначала заполняем все значения
 clusters.iloc[:top_dialog, clusters.columns.get_loc('topic')] = process_in_batches(clusters.head(top_dialog))
