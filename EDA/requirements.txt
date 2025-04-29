@@ -1,0 +1,16 @@
+matplotlib
+numpy
+pandas
+seaborn
+statsmodels
+telethon
+networkx
+wordcloud
+PyPDF2
+pytz
+cycler
+kiwisolver
+pillow
+pyparsing
+six
+pyvis
