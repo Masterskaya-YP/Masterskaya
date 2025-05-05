@@ -6,18 +6,21 @@ import networkx as nx
 import ollama
 import time
 from tqdm import tqdm
-import argparse
+import sys
+import time
 
 # постоянная для вычесления временного порога близости сообщений
 # суть: 41й перцентиль среди временных распределений в диалоге
 # 41 найдено практически и интуитивно
 PERC = 41 
-
-import time
+FOLDER_OUTPUT = 'output'
 start = time.perf_counter()
 
+if __name__ == "__main__":
+    top_dialog = int(sys.argv[1]) if len(sys.argv) > 1 else 20  # значение по умолчанию 20
+
 # определим путь
-path_json = os.getcwd() + '/result.json'
+path_json = os.getcwd() + '/input_data/result.json'
 with open(path_json, 'r', encoding='utf-8') as file:
     chat_data = json.load(file)
 
@@ -295,13 +298,6 @@ def process_in_batches_idea(df, batch_size=5):
         
     return all_topics
 
-# Программа для определения количество диалогов, обрабатываемых LLM. 
-# По умолчанию обрабатываем ТОП-20.
-parser = argparse.ArgumentParser(description="Программа для определения количество диалогов, обрабатываемых LLM")
-parser.add_argument("--top", type=int, default=1, help="Количество диалогов")
-args = parser.parse_args()
-top_dialog = args.top
-
 # Получаем темы от LLM
 clusters['topic'] = "не обработано"  # Сначала заполняем все значения
 clusters.iloc[:top_dialog, clusters.columns.get_loc('topic')] = process_in_batches(clusters.head(top_dialog))
@@ -314,15 +310,22 @@ clusters.iloc[:top_dialog, clusters.columns.get_loc('words')] = process_in_batch
 clusters['idea'] = "не обработано"  # Сначала заполняем все значения
 clusters.iloc[:top_dialog, clusters.columns.get_loc('idea')] = process_in_batches_idea(clusters.head(top_dialog))
 
+# Получаем абсолютный путь к родительскому каталогу проекта
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+path_dir_output = os.path.join(parent_dir, FOLDER_OUTPUT)
+# Создаем папку (если не существует)
+os.makedirs(path_dir_output, exist_ok=True)
+
 # Экспорт DataFrame в Excel файл
-df_clast.to_excel('output_data/df_clast.xlsx', index=False, engine='openpyxl')
+df_clast.to_excel('output/df_clast.xlsx', index=False, engine='openpyxl')
 print("Файл успешно сохранён: df_clast.xlsx")
 
 # перед сохраниением удалим ненужный столбец с текстами
 clusters = clusters.drop(['text'], axis=1)
 
 # Экспорт DataFrame в Excel файл
-clusters.to_excel('output_data/clusters.xlsx', index=False, engine='openpyxl')
+clusters.to_excel('output/clusters.xlsx', index=False, engine='openpyxl')
 print("Файл успешно сохранён: clusters.xlsx")
 
 end = time.perf_counter()
