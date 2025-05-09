@@ -28,6 +28,19 @@ from llama_cpp import Llama
 warnings.filterwarnings('ignore', category=UserWarning, module='transformers')
 warnings.filterwarnings('ignore', category=FutureWarning, module='transformers')
 
+import logging
+import sys
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.StreamHandler(sys.stdout)  # лог в stdout
+    ]
+)
+
+logger = logging.getLogger(__name__)
+
 # stop words для 'Vectorizers in BERTopic'
 try:
     russian_stopwords = stopwords.words("russian") 
@@ -47,7 +60,7 @@ def time_work(time_last: float) -> None:
     time_diff = time.time() - time_last
     minutes = int(time_diff // 60)
     seconds = int(time_diff % 60)
-    print(f'Время: {minutes} мин. и {seconds} сек.')    
+    logger.info(f'Время: {minutes} мин. и {seconds} сек.')    
 
 ####################################################################################
 # функция активности
@@ -96,10 +109,10 @@ def text_preparation_with_replay( df: pd.DataFrame, len_text: str = 3) -> tuple[
 try:
     df_1 = DictToDataFrameParser(next(path_dir_input.glob('*.json')))
 except:
-    print(f'Проверь папку {FOLDER_INPUT} Возможно нет JSON-файла в папке.')
+    logger.info(f'Проверь папку {FOLDER_INPUT} Возможно нет JSON-файла в папке.')
     sys.exit()
     
-print(df_1.name)
+logger.info(df_1.name)
 
 
 LEN_TEXT = 10
@@ -150,14 +163,14 @@ df_1.df = df_1.df.join(pd.DataFrame({'topic': topics,'probs':np.round(probs,3)},
 stop_event.set()
 thread.join()
 time_work(time_last)
-print("Bertopic_OK")
+logger.info("Bertopic_OK")
 
 ############################ LLM ################################
 model_path = hf_hub_download(
     repo_id="Ronny/YandexGPT-5-Lite-8B-instruct-Q8_0-GGUF",
     filename="yandexgpt-5-lite-8b-instruct-q8_0.gguf"
 )
-WINDOW_SIZE = 22304
+WINDOW_SIZE = 2304
 max_tokens=2048
 llama = Llama(model_path=model_path, n_ctx=WINDOW_SIZE,verbose=False)
 
@@ -200,7 +213,7 @@ thread.join()
 del llama
 gc.collect()    
 time_work(time_last)
-print("LLM_yandexGPT5.0_OK")
+logger.info("LLM_yandexGPT5.0_OK")
 
 ####################################################################################################
 
@@ -219,8 +232,8 @@ df_final = df_final.dropna()
 
 ################ to write data to an Excel file ############################
 
-FOLDER_OUTPUT = 'output_data'
-# Создадим папку  'output_data' в  родительском каталоге проекта
+FOLDER_OUTPUT = 'output'
+# Создадим папку  'output' в  родительском каталоге проекта
 path_dir_output = (Path(__file__).resolve().parent.parent)/FOLDER_OUTPUT
 path_dir_output.mkdir(parents=True, exist_ok=True)
 

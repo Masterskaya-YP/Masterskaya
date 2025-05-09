@@ -1,3 +1,4 @@
 *.log
 lib/
 */__pycache__/
+main_topics/src/module/__pycache__/*

@@ -34,7 +34,7 @@ class ChatAnalyzer:
         script_dir = Path(__file__).parent
         self.input_dir = script_dir.parent / "input_data"  # Папка input в корне проекта
         self.output_dir = script_dir.parent / "output"  # Папка output в корне проекта
-        self.lib_dir = script_dir.parent / "EDA" / "lib"
+        # self.lib_dir = script_dir.parent / "EDA" / "lib"
 
     def load_and_process_json(self, file_path):
         """Загрузка и обработка JSON файла"""
@@ -315,7 +315,7 @@ class ChatAnalyzer:
                 logger.error(f"Ошибка при визуализации кластеров: {e}")
         
         # Интерактивная визуализация (сохраняется как HTML)
-        net = Network(height="800px", width="100%", bgcolor="#ffffff", font_color="#333333", directed=True)
+        net = Network(notebook=False, height="800px", width="100%", bgcolor="#ffffff", font_color="#333333", directed=True)
         pagerank = nx.pagerank(G)
         betweenness = nx.betweenness_centrality(G)
         
