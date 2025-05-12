@@ -26,6 +26,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 API_TOKEN = '7933511249:AAFYQ_cbX6io6vvTQZI6S-0iZjquF0ILGHA'
+#API_TOKEN = '7846606479:AAHKVA6VyRHU76H8nT9yjmNA8L4QFz3gl5U'
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 UPLOAD_FOLDER = os.path.join(BASE_DIR, 'input_data')
@@ -51,7 +52,31 @@ class DialogStates(StatesGroup):
 async def send_welcome(message: types.Message):
     logger.info(f"Пользователь {message.from_user.id} начал работу с ботом.")
     await message.answer(
-        "Привет! Пожалуйста, загрузите файл result.json для продолжения работы. Используйте скрепку, чтобы прикрепить файл"
+        "Привет! Пожалуйста, загрузите файл result.json для продолжения работы. Используйте скрепку, чтобы прикрепить файл. Для получения помощи введите команду /help"
+    )
+
+@dp.message(Command("help"))
+async def send_welcome(message: types.Message):
+    logger.info(f"Пользователь {message.from_user.id} комнда help.")
+    await message.answer(
+        """
+📚 <b>Инструкция по использованию бота:</b>
+
+1. <b>Загрузка данных</b>
+   - Отправьте файл <code>result.json</code> через меню "Скрепка"
+
+2. <b>Основные функции</b>
+   • <b>EDA</b> - исследовательский анализ данных (~2 мин)
+   • <b>Диалоги</b> - Поиск ключевых тем (~15 мин)
+   • <b>Кластеризация</b> - группировка схожих элементов (~15 мин)
+   • <b>Очистка отчетов</b> - удаление предыдущих результатов
+   • <b>Скачать отчеты</b> - архив со всеми анализами
+
+3. <b>Важно</b>
+   - Не прерывайте выполнение команд
+   - Для нового анализа загружайте свежий файл
+   - При ошибках - попробуйте /start
+    """
     )
 
 @dp.message(lambda message: message.document and message.document.file_name == 'result.json')
@@ -134,7 +159,7 @@ async def download_reports_folder(message: types.Message):
 async def show_main_buttons(message: types.Message):
     builder = ReplyKeyboardBuilder()
     builder.add(types.KeyboardButton(text="EDA — Исследовательский анализ данных"))
-    # builder.add(types.KeyboardButton(text="Диалоги — Поиск ключевых тем"))
+    builder.add(types.KeyboardButton(text="Диалоги — Поиск ключевых тем"))
     builder.add(types.KeyboardButton(text="Кластеризация — Группировка схожих элементов"))
     builder.adjust(3)
     await message.answer("Выберите действие:", reply_markup=builder.as_markup(resize_keyboard=True))
@@ -231,11 +256,6 @@ async def handle_topics(message: types.Message):
     await run_topics_script(message)
     await wait_msg.delete()
     await show_file_buttons(message)
-    
-import asyncio
-import os
-import sys
-from aiogram import types
 
 async def run_topics_script_new(message: types.Message):
     try:
