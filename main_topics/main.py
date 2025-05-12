@@ -28,6 +28,20 @@ from llama_cpp import Llama
 warnings.filterwarnings('ignore', category=UserWarning, module='transformers')
 warnings.filterwarnings('ignore', category=FutureWarning, module='transformers')
 
+
+import logging
+import sys
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.StreamHandler(sys.stdout)  # лог в stdout
+    ]
+)
+
+logger = logging.getLogger(__name__)
+
 # stop words для 'Vectorizers in BERTopic'
 try:
     russian_stopwords = stopwords.words("russian") 
@@ -47,7 +61,9 @@ def time_work(time_last: float) -> None:
     time_diff = time.time() - time_last
     minutes = int(time_diff // 60)
     seconds = int(time_diff % 60)
-    print(f'Время: {minutes} мин. и {seconds} сек.')    
+
+    logger.info(f'Время: {minutes} мин. и {seconds} сек.')    
+
 
 ####################################################################################
 # функция активности
@@ -96,10 +112,14 @@ def text_preparation_with_replay( df: pd.DataFrame, len_text: str = 3) -> tuple[
 try:
     df_1 = DictToDataFrameParser(next(path_dir_input.glob('*.json')))
 except:
-    print(f'Проверь папку {FOLDER_INPUT} Возможно нет JSON-файла в папке.')
+
+    
+
+    logger.info(f'Проверь папку {FOLDER_INPUT} Возможно нет JSON-файла в папке.')
     sys.exit()
     
-print(df_1.name)
+logger.info(df_1.name)
+
 
 
 LEN_TEXT = 10
@@ -150,7 +170,10 @@ df_1.df = df_1.df.join(pd.DataFrame({'topic': topics,'probs':np.round(probs,3)},
 stop_event.set()
 thread.join()
 time_work(time_last)
-print("Bertopic_OK")
+
+
+logger.info("Bertopic_OK")
+
 
 ############################ LLM ################################
 model_path = hf_hub_download(
@@ -200,7 +223,9 @@ thread.join()
 del llama
 gc.collect()    
 time_work(time_last)
-print("LLM_yandexGPT5.0_OK")
+
+logger.info("LLM_yandexGPT5.0_OK")
+
 
 ####################################################################################################
 

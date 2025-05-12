@@ -57,6 +57,7 @@ class DictToDataFrameParser:
             df['user_name'] = df['user_name'].fillna(df['user_name_actor'])
             del df['user_name_actor']
         df['user_name'] = df['user_name'].fillna('')
+
         df['chat_name'] =dict_to_df.get('name')
         df['chat_id'] =dict_to_df.get('id')
         column =list(df.columns)
