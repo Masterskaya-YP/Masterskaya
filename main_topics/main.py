@@ -28,6 +28,7 @@ from llama_cpp import Llama
 warnings.filterwarnings('ignore', category=UserWarning, module='transformers')
 warnings.filterwarnings('ignore', category=FutureWarning, module='transformers')
 
+
 import logging
 import sys
 
@@ -60,7 +61,9 @@ def time_work(time_last: float) -> None:
     time_diff = time.time() - time_last
     minutes = int(time_diff // 60)
     seconds = int(time_diff % 60)
+
     logger.info(f'Время: {minutes} мин. и {seconds} сек.')    
+
 
 ####################################################################################
 # функция активности
@@ -109,10 +112,14 @@ def text_preparation_with_replay( df: pd.DataFrame, len_text: str = 3) -> tuple[
 try:
     df_1 = DictToDataFrameParser(next(path_dir_input.glob('*.json')))
 except:
+
+    
+
     logger.info(f'Проверь папку {FOLDER_INPUT} Возможно нет JSON-файла в папке.')
     sys.exit()
     
 logger.info(df_1.name)
+
 
 
 LEN_TEXT = 10
@@ -163,7 +170,10 @@ df_1.df = df_1.df.join(pd.DataFrame({'topic': topics,'probs':np.round(probs,3)},
 stop_event.set()
 thread.join()
 time_work(time_last)
+
+
 logger.info("Bertopic_OK")
+
 
 ############################ LLM ################################
 model_path = hf_hub_download(
@@ -213,7 +223,9 @@ thread.join()
 del llama
 gc.collect()    
 time_work(time_last)
+
 logger.info("LLM_yandexGPT5.0_OK")
+
 
 ####################################################################################################
 
