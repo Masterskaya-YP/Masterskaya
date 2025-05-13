@@ -62,7 +62,7 @@ def time_work(time_last: float) -> None:
     minutes = int(time_diff // 60)
     seconds = int(time_diff % 60)
 
-    logger.info(f'Время: {minutes} мин. и {seconds} сек.')    
+    print(f'Время: {minutes} мин. и {seconds} сек.')    
 
 
 ####################################################################################
@@ -115,10 +115,10 @@ except:
 
     
 
-    logger.info(f'Проверь папку {FOLDER_INPUT} Возможно нет JSON-файла в папке.')
+    print(f'Проверь папку {FOLDER_INPUT} Возможно нет JSON-файла в папке.')
     sys.exit()
     
-logger.info(df_1.name)
+print(df_1.name)
 
 
 
@@ -172,7 +172,7 @@ thread.join()
 time_work(time_last)
 
 
-logger.info("Bertopic_OK")
+print("Bertopic_OK")
 
 
 ############################ LLM ################################
@@ -224,7 +224,7 @@ del llama
 gc.collect()    
 time_work(time_last)
 
-logger.info("LLM_yandexGPT5.0_OK")
+print("LLM_yandexGPT5.0_OK")
 
 
 ####################################################################################################
